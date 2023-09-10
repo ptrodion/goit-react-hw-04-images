@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { GlobalStyle } from './GlobalStyle';
 import toast, { Toaster } from 'react-hot-toast';
 import { Layout } from './Layout';
@@ -10,78 +10,57 @@ import { Loader } from './Loader/Loader';
 import { Error } from './Error/Error';
 import { Modal } from './Modal/Modal';
 
-export class App extends Component {
-  state = {
-    query: '',
-    images: [],
-    page: 0,
-    loading: false,
-    error: false,
-    showModal: false,
-    largePhotoURL: '',
-    // showLoadMoreButton: true,
-  };
+export const App = () => {
+  const scrollLoadMoreButtonRef = useRef();
 
-  loadMoreButtonRef = React.createRef();
+  const [query, setQuery] = useState('');
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [largePhotoURL, setLargePhotoURL] = useState('');
 
-  async componentDidUpdate(prevProps, prevState) {
-    const { query, page } = this.state;
-    const currentQuery = String(query.split('/')[1]);
-
+  useEffect(() => {
     if (!query) {
       return;
     }
-    if (prevState.query !== query || prevState.page !== page) {
-      this.setState({ loading: true, error: false });
 
-      setTimeout(async () => {
-        try {
-          const response = await fetchImages(currentQuery, page);
+    setLoading(true);
+    setError(false);
 
-          const { totalHits: totalImages, hits: data } = response;
+    setTimeout(async () => {
+      console.log(loading);
+      console.log(page);
+      try {
+        const currentQuery = String(query.split('/')[1]);
+        const response = await fetchImages(currentQuery, page);
 
-          // Якщо немає більше фоток, спрячемо кнопку "LoadMoreButton"
-          // if (totalImages - page * 487 < 12) {
-          //   this.setState({
-          //     showLoadMoreButton: false,
-          //   });
-          // }
+        const { totalHits: totalImages, hits: data } = response;
 
-          if (totalImages === 0) {
-            // Якщо нічого не прийщло.
-            toast.error('Nothing found for this query.');
-            this.setState({
-              images: [],
-              query: '',
-            });
-            // Якщо є то треба додати в массив.
-          } else {
-            this.setState(prevState => ({
-              images: [...prevState.images, ...data],
-            }));
-          }
-        } catch (error) {
-          this.setState({ error: true });
-        } finally {
-          this.setState({ loading: false });
+        if (totalImages === 0) {
+          toast.error('Nothing found for this query.');
+          setImages([]);
+          setQuery('');
+        } else {
+          setImages(prevState => [...prevState, ...data]);
         }
-      }, 600);
-    }
-  }
+      } catch (error) {
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    }, 5000);
+  }, [page, query]);
 
-  handlerSearchImages = query => {
+  const handlerSearchImages = query => {
+    setImages([]);
     if (query) {
-      this.setState({
-        query: `${Date.now()}/${query}`,
-        page: 1,
-        images: [],
-      });
+      setQuery(`${Date.now()}/${query}`);
+      setPage(1);
     } else {
-      this.setState({
-        query: '',
-        page: 0,
-        images: [],
-      });
+      setQuery('');
+      setPage(0);
 
       toast('Fill in the search word', {
         icon: '👈',
@@ -94,79 +73,61 @@ export class App extends Component {
     }
   };
 
-  handlerOpenModal = () => {
-    this.setState({
-      showModal: true,
-    });
+  const handlerOpenModal = () => {
+    setShowModal(true);
   };
 
-  handlerCloseModal = () => {
-    this.setState({
-      showModal: false,
-    });
+  const handlerCloseModal = () => {
+    setShowModal(false);
   };
 
-  handlerGetLargePhotoURL = value => {
-    this.setState({ largePhotoURL: value });
+  const handlerGetLargePhotoURL = value => {
+    setLargePhotoURL(value);
   };
 
-  handlerLoadMore = () => {
-    this.setState(
-      prevState => ({
-        page: prevState.page + 1,
-      }),
-
-      () => {
-        this.scrollToLoadMoreButton();
-      }
-    );
+  const handlerLoadMore = () => {
+    setPage(prevState => prevState + 1);
   };
 
-  scrollToLoadMoreButton = () => {
-    if (this.loadMoreButtonRef.current) {
-      setTimeout(() => {
-        window.scrollTo({
-          top: this.loadMoreButtonRef.current.offsetTop,
-          behavior: 'smooth',
-        });
-      }, 1000);
-    }
+  useLayoutEffect(() => {
+    scrollToLoadMoreButton();
+  }, []);
+
+  const scrollToLoadMoreButton = () => {
+    console.log('I`m here');
+    // const { top } = scrollLoadMoreButtonRef.current.getBoundingClientRect();
+    // window.scrollTo({
+    //   top,
+    //   behavior: 'smooth',
+    // });
   };
 
-  render() {
-    const { images, page, loading, error, showModal, largePhotoURL } =
-      this.state;
+  return (
+    <Layout>
+      <Searchbar onSearch={handlerSearchImages} />
+      {page === 0 && loading && <Loader />}
 
-    return (
-      <Layout>
-        <Searchbar onSearch={this.handlerSearchImages} />
-        {page === 0 && loading && <Loader />}
+      {error && <Error message={'What went wrong, try again.'} />}
 
-        {error && <Error message={'What went wrong, try again.'} />}
-
-        {images.length > 0 && (
-          <>
-            <ImageGallery
-              images={images}
-              handlerGetLargePhotoURL={this.handlerGetLargePhotoURL}
-              handlerOpenModal={this.handlerOpenModal}
-            />
-            <LoadMoreButton
-              clickLoadMore={this.handlerLoadMore}
-              ref={this.loadMoreButtonRef}
-              loading={loading}
-            />
-          </>
-        )}
-        {showModal && (
-          <Modal
-            largePhotoURL={largePhotoURL}
-            onCloseModal={this.handlerCloseModal}
+      {images.length > 0 && (
+        <>
+          <ImageGallery
+            images={images}
+            handlerGetLargePhotoURL={handlerGetLargePhotoURL}
+            handlerOpenModal={handlerOpenModal}
           />
-        )}
-        <GlobalStyle />
-        <Toaster position="top-right" reverseOrder={false} />
-      </Layout>
-    );
-  }
-}
+          <LoadMoreButton
+            clickLoadMore={handlerLoadMore}
+            ref={scrollLoadMoreButtonRef}
+            loading={loading}
+          />
+        </>
+      )}
+      {showModal && (
+        <Modal largePhotoURL={largePhotoURL} onCloseModal={handlerCloseModal} />
+      )}
+      <GlobalStyle />
+      <Toaster position="top-right" reverseOrder={false} />
+    </Layout>
+  );
+};
