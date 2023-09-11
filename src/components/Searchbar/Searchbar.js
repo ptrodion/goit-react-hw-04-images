@@ -7,7 +7,7 @@ import {
 } from './Searchbar.styled';
 import { LuSearch } from 'react-icons/lu';
 
-export const Searchbar = ({ onSearch }) => {
+export const Searchbar = ({ onSubmit }) => {
   return (
     <FormWrapper>
       <Formik
@@ -15,7 +15,7 @@ export const Searchbar = ({ onSearch }) => {
           query: '',
         }}
         onSubmit={values => {
-          onSearch(values.query.trim());
+          onSubmit(values.query.trim());
         }}
       >
         <SearchForm>

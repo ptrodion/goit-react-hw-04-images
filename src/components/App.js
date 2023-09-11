@@ -3,12 +3,16 @@ import { GlobalStyle } from './GlobalStyle';
 import toast, { Toaster } from 'react-hot-toast';
 import { Layout } from './Layout';
 import { Searchbar } from './Searchbar/Searchbar';
-import { ImageGallery } from './ImageGallery/ImageGallery';
 import { LoadMoreButton } from './LoadMoreButton/LoadMoreButton';
 import { fetchImages } from './Api/api';
 import { Loader } from './Loader/Loader';
 import { Error } from './Error/Error';
-import { Modal } from './Modal/Modal';
+import { CustomModal } from './Modal/Modal';
+import {
+  ImageGalleryLi,
+  ImageGalleryUl,
+  ImageGalleryUlImg,
+} from './ImageGallery/ImageGallery.styled';
 
 export const App = () => {
   const scrollLoadMoreButtonRef = useRef();
@@ -16,22 +20,20 @@ export const App = () => {
   const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
   const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [largePhotoURL, setLargePhotoURL] = useState('');
+  const [isLoading, setLoading] = useState(false);
+  const [isError, setError] = useState(false);
+  const [isShowModal, setShowModal] = useState(false);
+  const [isLoadMore, setIsLoadMore] = useState(false);
+  const [image, setImage] = useState({ src: '', alt: '' });
 
   useEffect(() => {
     if (!query) {
       return;
     }
 
-    setLoading(true);
-    setError(false);
-
-    setTimeout(async () => {
-      console.log(loading);
-      console.log(page);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(false);
       try {
         const currentQuery = String(query.split('/')[1]);
         const response = await fetchImages(currentQuery, page);
@@ -44,24 +46,27 @@ export const App = () => {
           setQuery('');
         } else {
           setImages(prevState => [...prevState, ...data]);
+          setIsLoadMore(page < Math.ceil(totalImages / 12));
         }
       } catch (error) {
         setError(true);
       } finally {
         setLoading(false);
       }
-    }, 5000);
+    };
+
+    fetchData();
   }, [page, query]);
 
-  const handlerSearchImages = query => {
+  const onSubmit = query => {
     setImages([]);
+    setIsLoadMore(false);
     if (query) {
       setQuery(`${Date.now()}/${query}`);
       setPage(1);
     } else {
       setQuery('');
       setPage(0);
-
       toast('Fill in the search word', {
         icon: '👈',
         style: {
@@ -73,16 +78,9 @@ export const App = () => {
     }
   };
 
-  const handlerOpenModal = () => {
-    setShowModal(true);
-  };
-
-  const handlerCloseModal = () => {
-    setShowModal(false);
-  };
-
-  const handlerGetLargePhotoURL = value => {
-    setLargePhotoURL(value);
+  const openModal = (src, alt) => {
+    setShowModal(prevState => !prevState);
+    setImage({ src, alt });
   };
 
   const handlerLoadMore = () => {
@@ -94,7 +92,7 @@ export const App = () => {
   }, []);
 
   const scrollToLoadMoreButton = () => {
-    console.log('I`m here');
+    // console.log('I`m here');
     // const { top } = scrollLoadMoreButtonRef.current.getBoundingClientRect();
     // window.scrollTo({
     //   top,
@@ -104,27 +102,44 @@ export const App = () => {
 
   return (
     <Layout>
-      <Searchbar onSearch={handlerSearchImages} />
-      {page === 0 && loading && <Loader />}
+      <Searchbar onSubmit={onSubmit} />
+      {page === 0 && isLoading && <Loader />}
 
-      {error && <Error message={'What went wrong, try again.'} />}
+      {isError && <Error message={'What went wrong, try again.'} />}
 
       {images.length > 0 && (
         <>
-          <ImageGallery
-            images={images}
-            handlerGetLargePhotoURL={handlerGetLargePhotoURL}
-            handlerOpenModal={handlerOpenModal}
-          />
-          <LoadMoreButton
-            clickLoadMore={handlerLoadMore}
-            ref={scrollLoadMoreButtonRef}
-            loading={loading}
-          />
+          <ImageGalleryUl>
+            {images.map(({ id, webformatURL, tags, largeImageURL }) => (
+              <ImageGalleryLi key={id}>
+                <ImageGalleryUlImg
+                  src={webformatURL}
+                  alt={tags}
+                  width="350"
+                  onClick={() => {
+                    openModal(largeImageURL, tags);
+                  }}
+                />
+              </ImageGalleryLi>
+            ))}
+          </ImageGalleryUl>
+
+          {isLoadMore && (
+            <LoadMoreButton
+              clickLoadMore={handlerLoadMore}
+              ref={scrollLoadMoreButtonRef}
+              loading={isLoading}
+            />
+          )}
         </>
       )}
-      {showModal && (
-        <Modal largePhotoURL={largePhotoURL} onCloseModal={handlerCloseModal} />
+      {isShowModal && (
+        <CustomModal
+          modalIsOpen={isShowModal}
+          src={image.src}
+          alt={image.alt}
+          closeModal={openModal}
+        />
       )}
       <GlobalStyle />
       <Toaster position="top-right" reverseOrder={false} />

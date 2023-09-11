@@ -1,38 +1,39 @@
-import { Component } from 'react';
-import { createPortal } from 'react-dom';
-import { ModalWrapper, ModalContent } from './Modal.styled';
+import { useEffect } from 'react';
+import Modal from 'react-modal';
 
-const modalRoot = document.querySelector('#modal-root');
+Modal.setAppElement('#modal-root');
 
-export class Modal extends Component {
-  componentDidMount() {
-    window.addEventListener('keydown', this.handlerKeyDown);
-  }
+const customStyles = {
+  content: {
+    top: '50%',
+    left: '50%',
+    right: 'auto',
+    bottom: 'auto',
+    marginRight: '-50%',
+    transform: 'translate(-50%, -50%)',
+    minHeight: '400px',
+    maxWidth: '600px',
+    width: '100%',
+  },
+};
 
-  componentWillUnmount() {
-    window.removeEventListener('keydown', this.handlerKeyDown);
-  }
-  handlerKeyDown = e => {
-    if (e.code !== 'Escape') {
-      return;
-    }
-    this.props.onCloseModal();
-  };
+export const CustomModal = ({ modalIsOpen, src, alt, closeModal }) => {
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
 
-  handlerBackDropClick = evt => {
-    if (evt.target !== evt.currentTarget) {
-      return;
-    }
-    this.props.onCloseModal();
-  };
-  render() {
-    return createPortal(
-      <ModalWrapper className="overlay" onClick={this.handlerBackDropClick}>
-        <ModalContent className="modal">
-          <img src={this.props.largePhotoURL} alt="It`s a beautiful day)" />
-        </ModalContent>
-      </ModalWrapper>,
-      modalRoot
-    );
-  }
-}
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
+  return (
+    <Modal
+      isOpen={modalIsOpen}
+      onRequestClose={closeModal}
+      style={customStyles}
+      contentLabel="Example Modal"
+    >
+      <img src={src} alt={alt} />
+    </Modal>
+  );
+};
