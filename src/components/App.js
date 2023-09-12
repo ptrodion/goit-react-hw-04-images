@@ -12,10 +12,10 @@ import {
   ImageGalleryLi,
   ImageGalleryUl,
   ImageGalleryUlImg,
-} from './ImageGallery/ImageGallery.styled';
+} from './App.styled';
 
 export const App = () => {
-  const scrollLoadMoreButtonRef = useRef();
+  const scrollLoadMoreButtonRef = useRef(null);
 
   const [query, setQuery] = useState('');
   const [images, setImages] = useState([]);
@@ -56,6 +56,7 @@ export const App = () => {
     };
 
     fetchData();
+    scrollToLoadMoreButton();
   }, [page, query]);
 
   const onSubmit = query => {
@@ -87,17 +88,17 @@ export const App = () => {
     setPage(prevState => prevState + 1);
   };
 
-  useLayoutEffect(() => {
-    scrollToLoadMoreButton();
-  }, []);
-
   const scrollToLoadMoreButton = () => {
-    // console.log('I`m here');
-    // const { top } = scrollLoadMoreButtonRef.current.getBoundingClientRect();
-    // window.scrollTo({
-    //   top,
-    //   behavior: 'smooth',
-    // });
+    const buttonRef = scrollLoadMoreButtonRef.current;
+    console.log(buttonRef);
+    if (buttonRef) {
+      setTimeout(() => {
+        window.scrollTo({
+          top: buttonRef.offsetTop,
+          behavior: 'smooth',
+        });
+      }, 250);
+    }
   };
 
   return (
