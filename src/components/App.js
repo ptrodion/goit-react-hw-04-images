@@ -8,11 +8,7 @@ import { fetchImages } from './Api/api';
 import { Loader } from './Loader/Loader';
 import { Error } from './Error/Error';
 import { CustomModal } from './Modal/Modal';
-import {
-  ImageGalleryLi,
-  ImageGalleryUl,
-  ImageGalleryUlImg,
-} from './App.styled';
+import { ImageGallery } from './ImageGallery/ImageGallery';
 
 export const App = () => {
   const scrollLoadMoreButtonRef = useRef(null);
@@ -24,7 +20,9 @@ export const App = () => {
   const [isError, setError] = useState(false);
   const [isShowModal, setShowModal] = useState(false);
   const [isLoadMore, setIsLoadMore] = useState(false);
-  const [image, setImage] = useState({ src: '', alt: '' });
+  const [largePhotoURL, setLargePhotoURL] = useState('');
+  const [description, setDescription] = useState('');
+  // const [image, setImage] = useState({ src: '', alt: '' });
 
   useEffect(() => {
     if (!query) {
@@ -56,7 +54,6 @@ export const App = () => {
     };
 
     fetchData();
-    scrollToLoadMoreButton();
   }, [page, query]);
 
   const onSubmit = query => {
@@ -79,26 +76,30 @@ export const App = () => {
     }
   };
 
-  const openModal = (src, alt) => {
-    setShowModal(prevState => !prevState);
-    setImage({ src, alt });
-  };
-
   const handlerLoadMore = () => {
     setPage(prevState => prevState + 1);
   };
 
-  const scrollToLoadMoreButton = () => {
+  useEffect(() => {
     const buttonRef = scrollLoadMoreButtonRef.current;
-    console.log(buttonRef);
-    if (buttonRef) {
-      setTimeout(() => {
-        window.scrollTo({
-          top: buttonRef.offsetTop,
-          behavior: 'smooth',
-        });
-      }, 250);
+    if (images.length && page !== 1) {
+      window.scrollTo({
+        top: buttonRef.offsetTop,
+        behavior: 'smooth',
+      });
     }
+  }, [images, page]);
+
+  const openModal = () => {
+    setShowModal(prevState => !prevState);
+  };
+
+  const handlerGetLargePhotoURL = value => {
+    setLargePhotoURL(value);
+  };
+
+  const handlerGetDescription = value => {
+    setDescription(value);
   };
 
   return (
@@ -110,20 +111,12 @@ export const App = () => {
 
       {images.length > 0 && (
         <>
-          <ImageGalleryUl>
-            {images.map(({ id, webformatURL, tags, largeImageURL }) => (
-              <ImageGalleryLi key={id}>
-                <ImageGalleryUlImg
-                  src={webformatURL}
-                  alt={tags}
-                  width="350"
-                  onClick={() => {
-                    openModal(largeImageURL, tags);
-                  }}
-                />
-              </ImageGalleryLi>
-            ))}
-          </ImageGalleryUl>
+          <ImageGallery
+            images={images}
+            handlerGetLargePhotoURL={handlerGetLargePhotoURL}
+            handlerGetAlt={handlerGetDescription}
+            handlerOpenModal={openModal}
+          />
 
           {isLoadMore && (
             <LoadMoreButton
@@ -137,8 +130,8 @@ export const App = () => {
       {isShowModal && (
         <CustomModal
           modalIsOpen={isShowModal}
-          src={image.src}
-          alt={image.alt}
+          src={largePhotoURL}
+          alt={description}
           closeModal={openModal}
         />
       )}
