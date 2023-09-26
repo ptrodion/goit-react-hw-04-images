@@ -22,7 +22,6 @@ export const App = () => {
   const [isLoadMore, setIsLoadMore] = useState(false);
   const [largePhotoURL, setLargePhotoURL] = useState('');
   const [description, setDescription] = useState('');
-  // const [image, setImage] = useState({ src: '', alt: '' });
 
   useEffect(() => {
     if (!query) {
